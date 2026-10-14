@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="no">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Emneplanlegger</title>
+    <meta
+      name="description"
+      content="Planlegg studieløpet ditt ved NTNU: emner per semester, karakterer og snitt."
+    />
+    <meta name="theme-color" content="#1d4fd7" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg" />
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=JetBrains+Mono:wght@500;700&display=swap"
+    />
+    <link rel = "stylesheet", href="style.css" />
+    
+  </head>
+  <body>
+    <main class="login" id="login">
+      <form class="login-card" id="loginForm" novalidate>
+        <div class="card-top">
+          <h1 data-i18n="appName"></h1>
+          <button class="lang" type="button" data-lang-toggle></button>
+        </div>
+        <p class="sub" data-i18n="loginLead"></p>
+        <label for="email" data-i18n="email"></label>
+        <input
+          id="email"
+          type="email"
+          autocomplete="email"
+          autocapitalize="none"
+          spellcheck="false"
+          placeholder="navn@stud.ntnu.no"
+          data-i18n-ph="emailPh"
+        />
+        <label for="password" data-i18n="password"></label>
+        <input
+          id="password"
+          type="password"
+          autocomplete="current-password"
+          data-i18n-ph="passwordPh"
+        />
+        <p class="err" id="loginErr" role="alert"></p>
+        <p class="info" id="loginInfo" role="status"></p>
+        <button class="btn primary" id="submitBtn" type="submit"></button>
+        <button class="linkbtn" id="switchMode" type="button"></button>
+        <div class="or"><span data-i18n="or"></span></div>
+        <button class="btn" id="localBtn" type="button" data-i18n="useLocal"></button>
+        <p class="note" id="privNote" data-i18n="private"></p>
+      </form>
+    </main>
+
+    <div class="wrap" id="app" hidden>
+      <header>
+        <div>
+          <h1 data-i18n="appName"></h1>
+          <p class="sub">
+            <span class="loc"
+              ><span data-i18n="localMode"></span> ·
+              <button class="linkbtn" id="toLogin" type="button" data-i18n="login"></button>
+              · </span
+            ><span class="acct"
+              ><span data-i18n="signedInAs"></span> <b id="who"></b> ·
+              <button class="linkbtn" id="logout" type="button" data-i18n="logout"></button>
+              · </span
+            ><span class="sync" id="sync" role="status"></span>
+          </p>
+        </div>
+        <div class="head-right">
+          <div class="head-tools">
+            <button class="lang" type="button" data-lang-toggle></button>
+            <div class="seg small" role="group" data-i18n-aria="mode">
+              <button type="button" id="modeEdit" aria-pressed="true" data-i18n="edit"></button>
+              <button type="button" id="modeView" aria-pressed="false" data-i18n="view"></button>
+            </div>
+          </div>
+          <div class="total">
+            <b id="totalSp">0</b><span data-i18n="creditsTotal"></span
+            ><span class="maybe-sp" id="maybeSp"></span>
+          </div>
+        </div>
+      </header>
+
+      <div class="search">
+        <div class="searchbar">
+          <div class="field">
+            <input
+              id="q"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              data-i18n-ph="searchPh"
+              role="combobox"
+              aria-expanded="false"
+              aria-controls="list"
+              aria-autocomplete="list"
+              data-i18n-aria="searchAria"
+            />
+            <ul id="list" role="listbox" hidden></ul>
+          </div>
+          <select id="target" data-i18n-aria="targetAria"></select>
+          <div class="seg" role="group" data-i18n-aria="addAs">
+            <button type="button" id="modeFirm" aria-pressed="true" data-i18n="firm"></button>
+            <button type="button" id="modeMaybe" aria-pressed="false" data-i18n="maybe"></button>
+          </div>
+        </div>
+        <p class="hint" data-i18n-html="hint"></p>
+        <p class="hint" id="msg" role="status"></p>
+      </div>
+
+      <section class="ledger" id="ledger" data-i18n-aria="semesters"></section>
+
+      <section class="summary" data-i18n-aria="summary">
+        <div>
+          <span data-i18n="planned"></span><b id="sumPlan">0</b
+          ><small data-i18n="plannedSub"></small>
+        </div>
+        <div>
+          <span data-i18n="maybe"></span><b id="sumMaybe">0</b><small data-i18n="maybeSub"></small>
+        </div>
+        <div>
+          <span data-i18n="completed"></span><b id="sumDone">0</b><small id="sumDoneOf"></small>
+        </div>
+        <div class="avg">
+          <span data-i18n="gpa"></span><b id="sumAvg">–</b><small id="sumAvgNote"></small>
+        </div>
+      </section>
+
+      <div class="tools">
+        <div class="legend" id="legend"></div>
+        <div class="grp">
+          <button class="btn" id="addSem" type="button" data-i18n="addSem"></button>
+          <button class="btn" id="delSem" type="button" data-i18n="delSem"></button>
+          <button class="btn danger" id="clear" type="button" data-i18n="clear"></button>
+          <span id="confirm" hidden>
+            <button class="btn danger" id="clearYes" type="button" data-i18n="clearYes"></button>
+            <button class="btn" id="clearNo" type="button" data-i18n="cancel"></button>
+          </span>
+        </div>
+      </div>
+      <p class="note" id="dataNote"></p>
+      <p class="note" data-i18n="disclaimer"></p>
+    </div>
+
+    <script>
+      // Eksempeldata. Erstattes av courses.json (fra scraperen) når den finnes ved siden av siden.
+      const SAMPLE = [
+        ["TDT4105", "Informasjonsteknologi, grunnkurs", 7.5],
+        ["TDT4100", "Objektorientert programmering", 7.5],
+        ["TDT4120", "Algoritmer og datastrukturer", 7.5],
+        ["TDT4290", "Kundestyrt prosjekt", 15],
+        ["TMA4100", "Matematikk 1", 7.5],
+        ["TMA4105", "Matematikk 2", 7.5],
+        ["TMA4110", "Matematikk 3", 7.5],
+        ["TMA4130", "Matematikk 4N", 7.5],
+        ["TMA4140", "Diskret matematikk", 7.5],
+        ["TMA4245", "Statistikk", 7.5],
+        ["TKT4118", "Mekanikk 1", 7.5],
+        ["TKT4123", "Mekanikk 2", 7.5],
+        ["TMT4106", "Kjemi", 7.5],
+        ["EXPH0300", "Examen philosophicum for naturvitenskap og teknologi", 7.5],
+        ["TEP4110", "Fluidmekanikk", 7.5],
+        ["TEP4120", "Termodynamikk 1", 7.5],
+        ["TFY4104", "Fysikk", 7.5],
+        ["TFY4125", "Fysikk", 7.5],
+        ["TMM4100", "Materialteknikk", 7.5],
+        ["TIØ4258", "Teknologiledelse", 7.5],
+        ["TMR4105", "Marin teknikk - Grunnlag", 7.5],
+        ["TMR4167", "Marin teknikk - Konstruksjoner", 7.5],
+        ["TMR4247", "Marin teknikk - Hydrodynamikk", 7.5],
+        ["TMR4335", "Marin teknikk - Propulsjonssystemer, sikkerhet og miljø", 7.5],
+        ["TMR4256", "Marin teknikk 6 - Design av marine systemer", 7.5],
+        ["TMR4182", "Marin dynamikk", 7.5],
+        ["TMR4252", "Marin prosjektering", 7.5],
+        ["TMR4120", "Undervannsteknikk", 7.5],
+        ["TMR4500", "Marin konstruksjonsteknikk, fordypningsprosjekt", 7.5],
+        ["TMR4505", "Marin konstruksjonsteknikk, fordypningsemne", 7.5],
+        ["TMR4510", "Marin kybernetikk, fordypningsprosjekt", 7.5],
+        ["TMR4515", "Marin kybernetikk, fordypningsemne", 7.5],
+        ["TMR4520", "Marin hydrodynamikk, fordypningsprosjekt", 7.5],
+        ["TMR4525", "Marin hydrodynamikk, fordypningsemne", 7.5],
+        ["TMR4530", "Marint maskineri, fordypningsprosjekt", 7.5],
+        ["TMR4560", "Marin prosjektering, fordypningsprosjekt", 7.5],
+        ["TTK4100", "Kybernetikk introduksjon", 7.5],
+        ["TTK4105", "Reguleringsteknikk", 7.5],
+        ["TTK4115", "Lineær systemteori", 7.5],
+        ["TTK4135", "Optimalisering og regulering", 7.5],
+        ["TTK4150", "Ulineære systemer", 7.5],
+        ["TTK4190", "Fartøystyring", 7.5],
+        ["TTK4250", "Sensorfusjon", 7.5],
+        ["TTK4255", "Robotsyn", 7.5],
+      ].map(([code, name, credits]) => ({ code, name, credits }));
+
+      const DEPTS = [
+        ["TMA", "Matematikk", "--c-tma"],
+        ["TMR", "Marin teknikk", "--c-tmr"],
+        ["TTK", "Kybernetikk", "--c-ttk"],
+        ["TDT", "Datateknologi", "--c-tdt"],
+        ["TFY", "Fysikk", "--c-tfy"],
+        ["TEP", "Energi og prosess", "--c-tep"],
+      ];
+      const deptVar = (c) => {
+        const d = DEPTS.find(([p]) => c.startsWith(p));
+        return d ? `var(${d[2]})` : "var(--c-other)";
+      };
+
+      const GRADES = [
+        ["", "–"],
+        ["A", "A"],
+        ["B", "B"],
+        ["C", "C"],
+        ["D", "D"],
+        ["E", "E"],
+        ["F", "F"],
+        ["P", "Bestått"],
+      ];
+      const GV = { A: 5, B: 4, C: 3, D: 2, E: 1 };
+
+      // ---- språk ----
+      const STR = {
+        no: {
+          appName: "Emneplanlegger",
+          loginLead:
+            "Logg inn for å åpne studieplanen din. Den er den samme på mobil, nettbrett og PC.",
+          email: "E-post",
+          emailPh: "navn@stud.ntnu.no",
+          password: "Passord",
+          passwordPh: "Minst 8 tegn",
+          login: "Logg inn",
+          signup: "Opprett konto",
+          toSignup: "Ny bruker? Opprett konto",
+          toLogin: "Har du konto? Logg inn",
+          private: "Bare du kan se og endre planen din.",
+          signedInAs: "Innlogget som",
+          logout: "Logg ut",
+          mode: "Modus",
+          edit: "Rediger",
+          view: "Vis",
+          creditsTotal: "studiepoeng totalt",
+          searchPh: "F.eks. TMA41 eller kybernetikk",
+          searchAria: "Søk etter emne",
+          targetAria: "Legg til i semester",
+          addAs: "Legg til som",
+          firm: "Fast",
+          maybe: "Kanskje",
+          hint: "<kbd>↑</kbd> <kbd>↓</kbd> for å bla, <kbd>Enter</kbd> for å legge til. Trykk på et semester for å velge det. <kbd>?</kbd> på et emne bytter mellom fast og kanskje. Lås et semester for å hindre endringer.",
+          semesters: "Semestre",
+          summary: "Oppsummering",
+          planned: "Planlagt",
+          plannedSub: "studiepoeng, faste emner",
+          maybeSub: "studiepoeng i tillegg",
+          completed: "Fullført",
+          gpa: "Karaktersnitt",
+          addSem: "+ Semester",
+          delSem: "− Semester",
+          clear: "Tøm plan",
+          clearYes: "Ja, tøm alt som ikke er låst",
+          cancel: "Avbryt",
+          disclaimer:
+            "Ikke en offisiell NTNU-tjeneste. Sjekk alltid studieplanen for ditt program. Planen lagres på kontoen din og synkroniseres mellom enhetene dine.",
+          sem: (n) => `${n}. sem`,
+          semFull: (n) => `${n}. semester`,
+          autumn: "Høst",
+          spring: "Vår",
+          maybeLower: "kanskje",
+          lock: "Lås",
+          unlock: "Lås opp",
+          locked: "Låst",
+          lockedTag: "låst",
+          remove: (c) => `Fjern ${c}`,
+          grade: "Karakter",
+          gradeIn: (c) => `Karakter i ${c}`,
+          pass: "Bestått",
+          makeFirm: (c) => `Gjør ${c} fast`,
+          makeMaybe: (c) => `Merk ${c} som kanskje`,
+          makeFirmT: "Gjør fast",
+          makeMaybeT: "Merk som kanskje",
+          ofPlanned: (x) => `av ${x} planlagt`,
+          addGrades: "Legg inn karakterer",
+          gradedN: (l, n) => `≈ ${l} · ${n} emner med bokstavkarakter`,
+          toSem: (n) => `Til ${n}. semester`,
+          inSem: (n) => `i ${n}. sem`,
+          noMatch: (q) => `Ingen emner passer «${q}»`,
+          semLocked: (n) => `${n}. semester er låst. Lås det opp for å endre.`,
+          pickOpen: "Velg et semester som ikke er låst.",
+          inLockedSem: (c, n) => `${c} ligger i ${n}. semester, som er låst.`,
+          cantRemoveLocked: (n) => `${n}. semester er låst og kan ikke fjernes.`,
+          saving: "Lagrer …",
+          saved: "Lagret",
+          notSaved: "Ikke lagret. Prøver igjen når du er på nett.",
+          offline: "Frakoblet. Endringer lagres lokalt.",
+          fetching: "Henter …",
+          savedLocal: "Lagret i denne nettleseren (lokal modus)",
+          offlineCopy: "Frakoblet. Viser siste lokale kopi.",
+          noConfig:
+            "Innlogging er ikke satt opp ennå (config.js). Du kan bruke planleggeren uten konto så lenge.",
+          or: "eller",
+          useLocal: "Fortsett uten konto",
+          localMode: "Uten konto: lagres bare i denne nettleseren",
+          badEmail: "Skriv inn en gyldig e-postadresse.",
+          shortPw: "Passordet må ha minst 8 tegn.",
+          wrongLogin: "Feil e-post eller passord.",
+          confirmMail:
+            "Sjekk e-posten din og trykk på lenken for å bekrefte kontoen. Logg inn etterpå.",
+          sample: (n) => `Eksempeldata: ${n} emner. Kjør scraperen for å få hele emnelisten.`,
+          fromNtnu: (n) => `${n} emner fra NTNUs emneliste.`,
+          other: "Andre",
+          depts: {
+            TMA: "Matematikk",
+            TMR: "Marin teknikk",
+            TTK: "Kybernetikk",
+            TDT: "Datateknologi",
+            TFY: "Fysikk",
+            TEP: "Energi og prosess",
+          },
+          switchTo: "EN",
+          switchAria: "Switch to English",
+        },
+        en: {
+          appName: "Course Planner",
+          loginLead:
+            "Sign in to open your study plan. It stays the same on phone, tablet and computer.",
+          email: "Email",
+          emailPh: "name@stud.ntnu.no",
+          password: "Password",
+          passwordPh: "At least 8 characters",
+          login: "Sign in",
+          signup: "Create account",
+          toSignup: "New here? Create an account",
+          toLogin: "Have an account? Sign in",
+          private: "Only you can see and change your plan.",
+          signedInAs: "Signed in as",
+          logout: "Sign out",
+          mode: "Mode",
+          edit: "Edit",
+          view: "View",
+          creditsTotal: "credits in total",
+          searchPh: "E.g. TMA41 or cybernetics",
+          searchAria: "Search for a course",
+          targetAria: "Add to semester",
+          addAs: "Add as",
+          firm: "Planned",
+          maybe: "Maybe",
+          hint: "<kbd>↑</kbd> <kbd>↓</kbd> to browse, <kbd>Enter</kbd> to add. Tap a semester to select it. <kbd>?</kbd> on a course switches between planned and maybe. Lock a semester to prevent changes.",
+          semesters: "Semesters",
+          summary: "Summary",
+          planned: "Planned",
+          plannedSub: "credits, planned courses",
+          maybeSub: "extra credits",
+          completed: "Completed",
+          gpa: "Grade average",
+          addSem: "+ Semester",
+          delSem: "− Semester",
+          clear: "Clear plan",
+          clearYes: "Yes, clear everything not locked",
+          cancel: "Cancel",
+          disclaimer:
+            "Not an official NTNU service. Always check the curriculum for your programme. Your plan is stored in your account and synced across your devices.",
+          sem: (n) => `Sem ${n}`,
+          semFull: (n) => `semester ${n}`,
+          autumn: "Autumn",
+          spring: "Spring",
+          maybeLower: "maybe",
+          lock: "Lock",
+          unlock: "Unlock",
+          locked: "Locked",
+          lockedTag: "locked",
+          remove: (c) => `Remove ${c}`,
+          grade: "Grade",
+          gradeIn: (c) => `Grade in ${c}`,
+          pass: "Passed",
+          makeFirm: (c) => `Make ${c} planned`,
+          makeMaybe: (c) => `Mark ${c} as maybe`,
+          makeFirmT: "Make planned",
+          makeMaybeT: "Mark as maybe",
+          ofPlanned: (x) => `of ${x} planned`,
+          addGrades: "Add grades",
+          gradedN: (l, n) => `≈ ${l} · ${n} courses with letter grades`,
+          toSem: (n) => `To semester ${n}`,
+          inSem: (n) => `in sem ${n}`,
+          noMatch: (q) => `No courses match “${q}”`,
+          semLocked: (n) => `Semester ${n} is locked. Unlock it to make changes.`,
+          pickOpen: "Choose a semester that isn't locked.",
+          inLockedSem: (c, n) => `${c} is in semester ${n}, which is locked.`,
+          cantRemoveLocked: (n) => `Semester ${n} is locked and can't be removed.`,
+          saving: "Saving …",
+          saved: "Saved",
+          notSaved: "Not saved. Will retry when you're online.",
+          offline: "Offline. Changes are kept on this device.",
+          fetching: "Loading …",
+          savedLocal: "Saved in this browser (local mode)",
+          offlineCopy: "Offline. Showing the last local copy.",
+          noConfig:
+            "Sign-in isn't set up yet (config.js). You can use the planner without an account for now.",
+          or: "or",
+          useLocal: "Continue without an account",
+          localMode: "No account: saved in this browser only",
+          badEmail: "Enter a valid email address.",
+          shortPw: "The password needs at least 8 characters.",
+          wrongLogin: "Wrong email or password.",
+          confirmMail: "Check your email and tap the link to confirm your account. Then sign in.",
+          sample: (n) => `Sample data: ${n} courses. Run the scraper to get the full course list.`,
+          fromNtnu: (n) => `${n} courses from NTNU's course list.`,
+          other: "Other",
+          depts: {
+            TMA: "Mathematics",
+            TMR: "Marine technology",
+            TTK: "Cybernetics",
+            TDT: "Computer science",
+            TFY: "Physics",
+            TEP: "Energy and process",
+          },
+          switchTo: "NO",
+          switchAria: "Bytt til norsk",
+        },
+      };
+      let LANG = (() => {
+        try {
+          const l = localStorage.getItem("emneplan-lang");
+          if (l === "no" || l === "en") return l;
+        } catch (e) {}
+        return /^(nb|nn|no)\b/i.test(navigator.language || "") ? "no" : "en";
+      })();
+      const t = (k, ...a) => {
+        const v = STR[LANG][k] ?? STR.no[k];
+        return typeof v === "function" ? v(...a) : v;
+      };
+      let BYCODE = new Map();
+      // engelsk navn: fra emnet selv, ellers fra emnelisten (eldre planer har ikke lagret det)
+      const cname = (c) => {
+        if (LANG !== "en") return c.name;
+        const e = c.name_en || (BYCODE.get(c.code) || {}).name_en;
+        return e || c.name;
+      };
+      function applyLang() {
+        document.documentElement.lang = LANG === "en" ? "en" : "no";
+        document.title = t("appName");
+        document
+          .querySelectorAll("[data-i18n]")
+          .forEach((el) => (el.textContent = t(el.dataset.i18n)));
+        document
+          .querySelectorAll("[data-i18n-html]")
+          .forEach((el) => (el.innerHTML = t(el.dataset.i18nHtml)));
+        document
+          .querySelectorAll("[data-i18n-ph]")
+          .forEach((el) => (el.placeholder = t(el.dataset.i18nPh)));
+        document
+          .querySelectorAll("[data-i18n-aria]")
+          .forEach((el) => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
+        document.querySelectorAll("[data-lang-toggle]").forEach((el) => {
+          el.textContent = t("switchTo");
+          el.setAttribute("aria-label", t("switchAria"));
+        });
+        if (typeof setSignup === "function") setSignup(signup, true);
+        if (typeof renderLegend === "function") renderLegend();
+        if (typeof renderNote === "function") renderNote();
+        if (state) render();
+      }
+      document.addEventListener("click", (e) => {
+        if (e.target.closest("[data-lang-toggle]")) {
+          LANG = LANG === "en" ? "no" : "en";
+          try {
+            localStorage.setItem("emneplan-lang", LANG);
+          } catch (err) {}
+          applyLang();
+        }
+      });
+
+      // ---- lagring: planen ligger i Supabase (tabellen plans), med lokal kopi som buffer ----
+      const CFG = window.EMNEPLAN_CONFIG || {};
+      const sb =
+        window.supabase && CFG.supabaseUrl && CFG.supabaseAnonKey
+          ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey)
+          : null;
+      let USER = null,
+        KEY = null,
+        VIEW = false,
+        channel = null,
+        saveTimer = null,
+        pending = false,
+        lastSynced = "";
+      let courses = SAMPLE,
+        state = null,
+        hi = -1,
+        matches = [];
+      const store = {
+        get(k) {
+          try {
+            return localStorage.getItem(k);
+          } catch (e) {
+            return null;
+          }
+        },
+        set(k, v) {
+          try {
+            localStorage.setItem(k, v);
+          } catch (e) {}
+        },
+        del(k) {
+          try {
+            localStorage.removeItem(k);
+          } catch (e) {}
+        },
+      };
+      const emptyPlan = () => ({ sems: 10, active: 1, plan: {} });
+      const valid = (s) => s && typeof s === "object" && s.plan && typeof s.plan === "object";
+
+      function setSync(text, bad) {
+        const el = $("sync");
+        if (el) {
+          el.textContent = text;
+          el.classList.toggle("bad", !!bad);
+        }
+      }
+
+      async function load() {
+        if (!sb) {
+          try {
+            const s = JSON.parse(store.get(KEY));
+            if (valid(s)) return s;
+          } catch (e) {}
+          return emptyPlan();
+        }
+        const { data, error } = await sb
+          .from("plans")
+          .select("data")
+          .eq("user_id", USER.id)
+          .maybeSingle();
+        if (error) throw error;
+        if (data && valid(data.data)) return data.data;
+        // ny bruker: ta med en plan som allerede ligger i denne nettleseren, ellers tom
+        try {
+          const s = JSON.parse(store.get(KEY));
+          if (valid(s)) return s;
+        } catch (e) {}
+        return emptyPlan();
+      }
+      function save() {
+        store.set(KEY, JSON.stringify(state));
+        pending = true;
+        setSync(t("saving"));
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(push, 600);
+      }
+      async function push() {
+        if (!sb) {
+          pending = false;
+          setSync(t("savedLocal"));
+          return;
+        }
+        const json = JSON.stringify(state);
+        const { error } = await sb
+          .from("plans")
+          .upsert({ user_id: USER.id, data: state, updated_at: new Date().toISOString() });
+        if (error) {
+          setSync(t("notSaved"), true);
+          return;
+        }
+        lastSynced = json;
+        if (JSON.stringify(state) === json) {
+          pending = false;
+          setSync(t("saved"));
+        }
+      }
+      // hent nyeste versjon når siden får fokus igjen (f.eks. etter endring på mobilen)
+      async function refresh() {
+        if (!USER || pending) return;
+        try {
+          const s = await load();
+          const j = JSON.stringify(s);
+          if (j !== JSON.stringify(state)) {
+            state = s;
+            lastSynced = j;
+            store.set(KEY, j);
+            render();
+          }
+          setSync(t("saved"));
+        } catch (e) {
+          setSync(t("offline"), true);
+        }
+      }
+      function listen() {
+        if (!sb) return;
+        if (channel) sb.removeChannel(channel);
+        channel = sb
+          .channel("plan-" + USER.id)
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "plans", filter: `user_id=eq.${USER.id}` },
+            (p) => {
+              const d = p.new && p.new.data;
+              if (!valid(d) || pending) return;
+              const j = JSON.stringify(d);
+              if (j !== JSON.stringify(state) && j !== lastSynced) {
+                state = d;
+                lastSynced = j;
+                store.set(KEY, j);
+                render();
+              }
+            },
+          )
+          .subscribe();
+      }
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) refresh();
+      });
+      addEventListener("online", () => {
+        if (pending) push();
+        else refresh();
+      });
+
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) =>
+        s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+      const fmt = (n) => (LANG === "en" ? String(n) : String(n).replace(".", ","));
+      const sum = (arr) => (arr || []).reduce((a, c) => a + (+c.credits || 0), 0);
+
+      function render() {
+        const L = $("ledger");
+        L.innerHTML = "";
+        let total = 0,
+          totalMaybe = 0;
+        for (let s = 1; s <= state.sems; s++) {
+          // faste emner først, kanskje-emner etter
+          const all = state.plan[s] || [],
+            list = [...all.filter((c) => !c.maybe), ...all.filter((c) => c.maybe)];
+          const sp = sum(list.filter((c) => !c.maybe)),
+            msp = sum(list.filter((c) => c.maybe));
+          total += sp;
+          totalMaybe += msp;
+          const row = document.createElement("div");
+          const locked = isLocked(s),
+            ro = locked || !!VIEW;
+          row.className =
+            "sem" +
+            (s === state.active && !ro ? " active" : "") +
+            (locked && !VIEW ? " locked" : "");
+          row.dataset.sem = s;
+          const cols = innerWidth <= 640 ? 4 : 8;
+          let used = 0,
+            chips = "";
+          for (const c of list) {
+            const span = Math.max(1, Math.min(cols, Math.round((+c.credits || 7.5) / 3.75)));
+            used += span;
+            const g = c.maybe ? "" : c.grade || "",
+              cls =
+                (c.maybe ? " maybe" : "") +
+                (g && g !== "F" ? " done" : "") +
+                (g === "F" ? " failed" : "");
+            chips += `<div class="chip${cls}" style="grid-column:span ${span};--dept:${deptVar(c.code)}">
+        <a href="https://www.ntnu.no/studier/emner/${encodeURIComponent(c.code)}" target="_blank" rel="noopener">${esc(c.code)}</a>
+        <span class="nm">${esc(cname(c))}</span>
+        ${ro ? "" : `<button class="rm" type="button" aria-label="${esc(t("remove", c.code))}" data-rm="${esc(c.code)}">×</button>`}
+        <div class="foot"><span class="cr">${fmt(c.credits)} sp</span>
+          ${
+            VIEW
+              ? g
+                ? `<span class="gb" title="${t("grade")}">${g === "P" ? t("pass") : g}</span>`
+                : ""
+              : `<select class="gr" data-gr="${esc(c.code)}" aria-label="${esc(t("gradeIn", c.code))}" title="${t("grade")}"${locked ? " disabled" : ""}>
+            ${GRADES.map(([v, l]) => `<option value="${v}"${v === g ? " selected" : ""}>${v === "P" ? t("pass") : l}</option>`).join("")}</select>`
+          }
+          ${ro ? "" : `<button class="mb" type="button" aria-pressed="${!!c.maybe}" aria-label="${esc(c.maybe ? t("makeFirm", c.code) : t("makeMaybe", c.code))}" title="${c.maybe ? t("makeFirmT") : t("makeMaybeT")}" data-mb="${esc(c.code)}">?</button>`}</div></div>`;
+          }
+          const capacity = 8,
+            per = 2; // 30 sp = 8 enheter à 3,75 sp; ledig plass vises i 7,5 sp-biter
+          for (let i = 0; i < Math.floor(Math.max(0, capacity - used) / per); i++)
+            chips += `<div class="slot" style="grid-column:span ${per}"></div>`;
+          row.innerHTML = `<div class="sem-label"><span class="n">${t("sem", s)}</span><span class="t">${s % 2 ? t("autumn") : t("spring")}</span>
+      <span class="sp${sp > 30 ? " over" : ""}">${fmt(sp)}/30 sp${msp ? ` <i>+${fmt(msp)} ${t("maybeLower")}</i>` : ""}</span>
+      <button class="lock" type="button" data-lock aria-pressed="${locked}" aria-label="${locked ? t("unlock") : t("lock")} ${t("semFull", s)}">${locked ? LOCK_ON : LOCK_OFF}${locked ? t("locked") : t("lock")}</button></div><div class="slots">${chips}</div>`;
+          L.appendChild(row);
+        }
+        $("totalSp").textContent = fmt(total);
+        $("maybeSp").textContent = totalMaybe ? `+ ${fmt(totalMaybe)} sp ${t("maybeLower")}` : "";
+        // oppsummering: fullført = karakter A–E eller bestått; snitt vektes med studiepoeng (A=5 … E=1), bestått teller ikke i snittet
+        let done = 0,
+          wSum = 0,
+          wSp = 0,
+          nGraded = 0;
+        for (const s in state.plan)
+          if (+s <= state.sems)
+            for (const c of state.plan[s] || []) {
+              if (c.maybe || !c.grade || c.grade === "F") continue;
+              done += +c.credits || 0;
+              if (c.grade in GV) {
+                wSum += GV[c.grade] * (+c.credits || 0);
+                wSp += +c.credits || 0;
+                nGraded++;
+              }
+            }
+        const avg = wSp ? wSum / wSp : null,
+          letter = avg == null ? "" : "EDCBA"[Math.min(4, Math.max(0, Math.round(avg) - 1))];
+        $("sumPlan").textContent = fmt(total);
+        $("sumMaybe").textContent = fmt(totalMaybe);
+        $("sumDone").textContent = fmt(done);
+        $("sumDoneOf").textContent = total ? t("ofPlanned", fmt(total)) : "";
+        $("sumAvg").textContent = avg == null ? "–" : fmt(avg.toFixed(2));
+        $("sumAvgNote").textContent = avg == null ? t("addGrades") : t("gradedN", letter, nGraded);
+        const tg = $("target");
+        tg.innerHTML = "";
+        for (let s = 1; s <= state.sems; s++) {
+          const o = new Option(
+            `${t("toSem", s)}${isLocked(s) ? ` (${t("lockedTag")})` : ""}`,
+            s,
+            false,
+            s === state.active,
+          );
+          o.disabled = isLocked(s);
+          tg.add(o);
+        }
+      }
+      function isLocked(s) {
+        return !!(state.locked && state.locked[s]);
+      }
+      function firstOpen(from) {
+        for (let i = 0; i < state.sems; i++) {
+          const s = ((from - 1 + i) % state.sems) + 1;
+          if (!isLocked(s)) return s;
+        }
+        return null;
+      }
+      let msgTimer;
+      function say(m) {
+        $("msg").textContent = m;
+        clearTimeout(msgTimer);
+        msgTimer = setTimeout(() => ($("msg").textContent = ""), 4000);
+      }
+      const LOCK_ON =
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
+      const LOCK_OFF =
+        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 4.8-1"/></svg>';
+
+      $("ledger").addEventListener("click", (e) => {
+        const rm = e.target.closest("[data-rm]");
+        const row = e.target.closest(".sem");
+        if (!row) return;
+        const s = +row.dataset.sem;
+        if (VIEW) return;
+        if (e.target.closest("[data-lock]")) {
+          state.locked = state.locked || {};
+          if (isLocked(s)) delete state.locked[s];
+          else {
+            state.locked[s] = true;
+            if (state.active === s) state.active = firstOpen(s) ?? s;
+          }
+          save();
+          render();
+          return;
+        }
+        if (isLocked(s)) {
+          if (!e.target.closest("a")) say(t("semLocked", s));
+          return;
+        }
+        const mb = e.target.closest("[data-mb]");
+        if (mb) {
+          const c = (state.plan[s] || []).find((x) => x.code === mb.dataset.mb);
+          if (c) {
+            c.maybe = !c.maybe;
+            save();
+            render();
+          }
+          return;
+        }
+        if (rm) {
+          state.plan[s] = (state.plan[s] || []).filter((c) => c.code !== rm.dataset.rm);
+          save();
+          render();
+          return;
+        }
+        if (e.target.closest("a,select")) return;
+        state.active = s;
+        save();
+        render();
+      });
+      $("target").addEventListener("change", (e) => {
+        state.active = +e.target.value;
+        save();
+        render();
+      });
+      $("ledger").addEventListener("change", (e) => {
+        const sel = e.target.closest("[data-gr]");
+        if (!sel) return;
+        const s = +sel.closest(".sem").dataset.sem,
+          c = (state.plan[s] || []).find((x) => x.code === sel.dataset.gr);
+        if (c) {
+          c.grade = sel.value || undefined;
+          save();
+          render();
+        }
+      });
+
+      // ---- autofullføring ----
+      const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      function search(q) {
+        const n = norm(q.trim());
+        if (!n) return [];
+        const out = [];
+        for (const c of courses) {
+          const code = norm(c.code);
+          let r = code.startsWith(n) ? 0 : code.includes(n) ? 4 : 9;
+          for (const nm of [c.name, c.name_en]) {
+            if (!nm) continue;
+            const name = norm(nm);
+            if (name.startsWith(n)) r = Math.min(r, 1);
+            else if (name.split(/[\s\-,]+/).some((w) => w.startsWith(n))) r = Math.min(r, 2);
+            else if (name.includes(n)) r = Math.min(r, 3);
+          }
+          if (r === 9) continue;
+          out.push([r, c]);
+        }
+        out.sort((a, b) => a[0] - b[0] || a[1].code.localeCompare(b[1].code));
+        return out.slice(0, 8).map((x) => x[1]);
+      }
+      function highlight(text, q) {
+        const i = norm(text).indexOf(norm(q.trim()));
+        if (i < 0 || !q.trim()) return esc(text);
+        const j = i + q.trim().length;
+        return (
+          esc(text.slice(0, i)) + "<mark>" + esc(text.slice(i, j)) + "</mark>" + esc(text.slice(j))
+        );
+      }
+      function where(code) {
+        for (const s in state.plan)
+          if ((state.plan[s] || []).some((c) => c.code === code)) return s;
+        return null;
+      }
+      function showList() {
+        const q = $("q").value,
+          L = $("list");
+        matches = search(q);
+        if (!q.trim()) {
+          L.hidden = true;
+          $("q").setAttribute("aria-expanded", "false");
+          return;
+        }
+        hi = matches.length ? 0 : -1;
+        L.innerHTML = matches.length
+          ? matches
+              .map((c, i) => {
+                const w = where(c.code);
+                return `<li role="option" id="opt${i}" data-i="${i}" aria-selected="${i === hi}"><span class="code">${highlight(c.code, q)}</span>
+    <span class="name">${highlight(cname(c), q)}</span><span class="meta">${w ? `${t("inSem", w)}${isLocked(w) ? ` (${t("lockedTag")})` : ""} · ` : ""}${fmt(c.credits)} sp</span></li>`;
+              })
+              .join("")
+          : `<li class="empty">${esc(t("noMatch", q))}</li>`;
+        L.hidden = false;
+        $("q").setAttribute("aria-expanded", "true");
+        mark();
+      }
+      function mark() {
+        [...$("list").querySelectorAll("[role=option]")].forEach((li, i) =>
+          li.setAttribute("aria-selected", i === hi),
+        );
+        const el = $("opt" + hi);
+        if (el) {
+          el.scrollIntoView({ block: "nearest" });
+          $("q").setAttribute("aria-activedescendant", "opt" + hi);
+        }
+      }
+      function pick(c) {
+        const s = state.active;
+        const old = where(c.code);
+        if (isLocked(s)) {
+          say(t("pickOpen"));
+          return;
+        }
+        if (old && isLocked(old)) {
+          say(t("inLockedSem", c.code, old));
+          return;
+        }
+        if (old) state.plan[old] = state.plan[old].filter((x) => x.code !== c.code);
+        (state.plan[s] = state.plan[s] || []).push({
+          code: c.code,
+          name: c.name,
+          name_en: c.name_en,
+          credits: c.credits,
+          maybe: addMaybe,
+        });
+        save();
+        render();
+        $("q").value = "";
+        showList();
+        $("q").focus();
+      }
+      $("q").addEventListener("input", showList);
+      $("q").addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown" && matches.length) {
+          hi = (hi + 1) % matches.length;
+          mark();
+          e.preventDefault();
+        } else if (e.key === "ArrowUp" && matches.length) {
+          hi = (hi - 1 + matches.length) % matches.length;
+          mark();
+          e.preventDefault();
+        } else if (e.key === "Enter" && hi >= 0) {
+          pick(matches[hi]);
+          e.preventDefault();
+        } else if (e.key === "Escape") {
+          $("list").hidden = true;
+          $("q").setAttribute("aria-expanded", "false");
+        }
+      });
+      $("list").addEventListener("mousedown", (e) => {
+        const li = e.target.closest("[data-i]");
+        if (li) {
+          e.preventDefault();
+          pick(matches[+li.dataset.i]);
+        }
+      });
+      $("q").addEventListener("blur", () =>
+        setTimeout(() => {
+          $("list").hidden = true;
+          $("q").setAttribute("aria-expanded", "false");
+        }, 120),
+      );
+
+      // ---- fast / kanskje ----
+      let addMaybe = false;
+      function setMode(m) {
+        addMaybe = m;
+        $("modeFirm").setAttribute("aria-pressed", !m);
+        $("modeMaybe").setAttribute("aria-pressed", m);
+      }
+      $("modeFirm").onclick = () => setMode(false);
+      $("modeMaybe").onclick = () => setMode(true);
+
+      // ---- rediger / vis ----
+      function setView(v) {
+        VIEW = v;
+        store.set("emneplan-view", v ? "1" : "");
+        document.body.classList.toggle("viewing", v);
+        $("modeEdit").setAttribute("aria-pressed", !v);
+        $("modeView").setAttribute("aria-pressed", v);
+        render();
+      }
+      $("modeEdit").onclick = () => setView(false);
+      $("modeView").onclick = () => setView(true);
+
+      // ---- verktøy ----
+      $("addSem").onclick = () => {
+        if (state.sems < 14) {
+          state.sems++;
+          save();
+          render();
+        }
+      };
+      $("delSem").onclick = () => {
+        if (isLocked(state.sems)) {
+          say(t("cantRemoveLocked", state.sems));
+          return;
+        }
+        if (state.sems > 1) {
+          delete state.plan[state.sems];
+          state.sems--;
+          state.active = Math.min(state.active, state.sems);
+          save();
+          render();
+        }
+      };
+      $("clear").onclick = () => {
+        $("confirm").hidden = false;
+        $("clear").hidden = true;
+      };
+      $("clearNo").onclick = () => {
+        $("confirm").hidden = true;
+        $("clear").hidden = false;
+      };
+      $("clearYes").onclick = () => {
+        for (const s in state.plan) if (!isLocked(+s)) delete state.plan[s];
+        state.active = firstOpen(1) ?? 1;
+        save();
+        render();
+        $("clearNo").onclick();
+      };
+      function renderLegend() {
+        $("legend").innerHTML =
+          DEPTS.map(
+            ([p, n, v]) => `<span><i style="background:var(${v})"></i>${p} ${t("depts")[p]}</span>`,
+          ).join("") + `<span><i style="background:var(--c-other)"></i>${t("other")}</span>`;
+      }
+      let lastCols = innerWidth <= 640;
+      addEventListener("resize", () => {
+        const c = innerWidth <= 640;
+        if (c !== lastCols) {
+          lastCols = c;
+          if (state) render();
+        }
+      });
+
+      // ---- innlogging (Supabase Auth: e-post og passord) ----
+      let signup = false,
+        LOCAL = false;
+      function showLogin(msg) {
+        $("app").hidden = true;
+        $("login").hidden = false;
+        document.body.classList.remove("viewing");
+        $("loginErr").textContent = "";
+        $("loginInfo").textContent = msg || "";
+        if (!sb) {
+          $("loginForm")
+            .querySelectorAll("input,#submitBtn,#switchMode")
+            .forEach((el) => (el.disabled = true));
+          $("loginInfo").textContent = t("noConfig");
+          return;
+        }
+        setTimeout(() => $("email").focus(), 0);
+      }
+      function setSignup(v, keepErr) {
+        signup = v;
+        $("submitBtn").textContent = v ? t("signup") : t("login");
+        $("switchMode").textContent = v ? t("toLogin") : t("toSignup");
+        $("password").autocomplete = v ? "new-password" : "current-password";
+        if (!keepErr) $("loginErr").textContent = "";
+      }
+      $("switchMode").onclick = () => setSignup(!signup);
+
+      async function enter(user, local) {
+        if (!local && channel) {
+          sb.removeChannel(channel);
+          channel = null;
+        }
+        USER = user;
+        KEY = "emneplan-cache:" + user.id;
+        LOCAL = !!local;
+        document.body.classList.toggle("local", LOCAL);
+        $("who").textContent = user.email || "";
+        $("login").hidden = true;
+        $("app").hidden = false;
+        // vis lokal kopi med en gang, hent fra serveren like etter
+        try {
+          const s = JSON.parse(store.get(KEY));
+          state = valid(s) ? s : emptyPlan();
+        } catch (e) {
+          state = emptyPlan();
+        }
+        setView(store.get("emneplan-view") === "1");
+        setSync(t("fetching"));
+        try {
+          state = await load();
+          lastSynced = JSON.stringify(state);
+          store.set(KEY, lastSynced);
+          render();
+          setSync(LOCAL ? t("savedLocal") : t("saved"));
+        } catch (e) {
+          setSync(t("offlineCopy"), true);
+        }
+        listen();
+      }
+      $("loginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!sb) return;
+        const email = $("email").value.trim(),
+          password = $("password").value;
+        if (!/^\S+@\S+\.\S+$/.test(email)) {
+          $("loginErr").textContent = t("badEmail");
+          return;
+        }
+        if (password.length < 8) {
+          $("loginErr").textContent = t("shortPw");
+          return;
+        }
+        $("submitBtn").disabled = true;
+        $("loginErr").textContent = "";
+        const res = signup
+          ? await sb.auth.signUp({
+              email,
+              password,
+              options: { emailRedirectTo: location.origin + location.pathname },
+            })
+          : await sb.auth.signInWithPassword({ email, password });
+        $("submitBtn").disabled = false;
+        if (res.error) {
+          $("loginErr").textContent = res.error.message.includes("Invalid login")
+            ? t("wrongLogin")
+            : res.error.message;
+          return;
+        }
+        if (signup && !res.data.session) {
+          setSignup(false);
+          $("loginInfo").textContent = t("confirmMail");
+        }
+      });
+      $("localBtn").onclick = () => {
+        store.set("emneplan-local", "1");
+        enter({ id: "local", email: "" }, true);
+      };
+      $("toLogin").onclick = () => {
+        store.del("emneplan-local");
+        USER = null;
+        state = null;
+        showLogin();
+      };
+      $("logout").onclick = async () => {
+        if (channel) sb.removeChannel(channel);
+        await sb.auth.signOut();
+      };
+
+      const wantsLocal = () => store.get("emneplan-local") === "1";
+      if (sb) {
+        sb.auth.onAuthStateChange((ev, session) => {
+          if (session && (!USER || USER.id !== session.user.id)) {
+            store.del("emneplan-local");
+            enter(session.user);
+          }
+          if (!session && !LOCAL) {
+            USER = null;
+            state = null;
+            showLogin();
+          }
+        });
+        sb.auth.getSession().then(({ data }) => {
+          if (!data.session) {
+            if (wantsLocal()) enter({ id: "local", email: "" }, true);
+            else showLogin();
+          }
+        });
+      } else if (wantsLocal()) enter({ id: "local", email: "" }, true);
+      else showLogin();
+      let fullList = false;
+      function renderNote() {
+        $("dataNote").textContent = fullList
+          ? t("fromNtnu", courses.length)
+          : t("sample", SAMPLE.length);
+      }
+      applyLang();
+      fetch("courses.json")
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((d) => {
+          if (Array.isArray(d) && d.length) {
+            courses = d
+              .filter((c) => c.code && c.name)
+              .map((c) => ({
+                code: c.code,
+                name: c.name,
+                name_en: c.name_en,
+                credits: +c.credits || 7.5,
+              }));
+            BYCODE = new Map(courses.map((c) => [c.code, c]));
+            fullList = true;
+            renderNote();
+            if (state) render();
+          }
+        })
+        .catch(() => {});
+    </script>
+  </body>
+</html>

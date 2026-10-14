@@ -1,0 +1,13 @@
+[build]
+  publish = "site"
+
+# Emnelisten kan endre seg, så nettleseren skal sjekke etter ny versjon ofte.
+[[headers]]
+  for = "/courses.json"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/config.js"
+  [headers.values]
+    Cache-Control = "no-cache"

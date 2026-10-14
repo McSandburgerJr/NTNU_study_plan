@@ -1,0 +1,27 @@
+name: Oppdater emneliste
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"   # hver mandag ca. kl. 05 norsk tid
+  workflow_dispatch:         # kan også kjøres manuelt fra Actions-fanen
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests beautifulsoup4
+      - run: python scripts/scrape_courses.py --details --out site/courses.json
+      - name: Lagre hvis listen er endret
+        run: |
+          git config user.name "emneliste-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add site/courses.json
+          git diff --cached --quiet || git commit -m "Oppdater emneliste"
+          git push
