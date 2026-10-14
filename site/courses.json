@@ -23522,6 +23522,12 @@
     "name_en": "Concrete Technology 2"
   },
   {
+    "code": "TKT4240",
+    "name": "BM1 Bygningsmaterialer",
+    "credits": 7.5,
+    "name_en": "BM1 Construction Materials"
+  },
+  {
     "code": "TKT4250",
     "name": "BYGG3 - Konstruksjonslære",
     "credits": 7.5,
@@ -25779,12 +25785,6 @@
     "name": "Industriell elektroteknikk",
     "credits": 7.5,
     "name_en": "Industrial Electrotechnics"
-  },
-  {
-    "code": "TTK4240",
-    "name": "BM1 Bygningsmaterialer",
-    "credits": 7.5,
-    "name_en": "BM1 Construction Materials"
   },
   {
     "code": "TTK4245",
