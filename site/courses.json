@@ -25781,6 +25781,12 @@
     "name_en": "Industrial Electrotechnics"
   },
   {
+    "code": "TTK4240",
+    "name": "BM1 Bygningsmaterialer",
+    "credits": 7.5,
+    "name_en": "BM1 Construction Materials"
+  },
+  {
     "code": "TTK4245",
     "name": "Kunstig intelligens for robotikk og automatisering",
     "credits": 7.5,
