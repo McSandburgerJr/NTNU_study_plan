@@ -13,15 +13,13 @@
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icon.svg" />
     <script src="config.js"></script>
-    <script src="app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=JetBrains+Mono:wght@500;700&display=swap"
     />
-    <link rel = "stylesheet", href="style.css" />
-    
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <main class="login" id="login">
@@ -655,8 +653,8 @@
                 (c.maybe ? " maybe" : "") +
                 (g && g !== "F" ? " done" : "") +
                 (g === "F" ? " failed" : "");
-            chips += `<div class="chip${cls}" style="grid-column:span ${span};--dept:${deptVar(c.code)}">
-        <a href="https://www.ntnu.no/studier/emner/${encodeURIComponent(c.code)}" target="_blank" rel="noopener">${esc(c.code)}</a>
+            chips += `<div class="chip${cls}${ro ? "" : " drag"}" data-code="${esc(c.code)}" style="grid-column:span ${span};--dept:${deptVar(c.code)}">
+       <a draggable="false" href="https://www.ntnu.no/studier/emner/${encodeURIComponent(c.code)}" target="_blank" rel="noopener">${esc(c.code)}</a>
         <span class="nm">${esc(cname(c))}</span>
         ${ro ? "" : `<button class="rm" type="button" aria-label="${esc(t("remove", c.code))}" data-rm="${esc(c.code)}">×</button>`}
         <div class="foot"><span class="cr">${fmt(c.credits)} sp</span>
@@ -1152,5 +1150,6 @@
         })
         .catch(() => {});
     </script>
+    <script src="app.js"></script>
   </body>
 </html>
