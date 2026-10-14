@@ -812,3 +812,47 @@ body:not(.local) .loc {
     }
   }
 }
+
+
+.chip.drag {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.chip.drag a {
+  -webkit-touch-callout: none;
+}
+body.is-dragging,
+body.is-dragging * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+.chip.dragging {
+  opacity: 0.35;
+}
+.drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  margin: 0;
+  pointer-events: none;
+  animation: none !important;
+  box-shadow: 0 14px 30px rgba(10, 20, 40, 0.28);
+}
+.sem.drop-target {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+  background: var(--accent-soft);
+}
+.sem.drop-no {
+  outline: 2px dashed var(--warn);
+  outline-offset: -2px;
+}
+.chip.drop-before {
+  box-shadow: -5px 0 0 -1px var(--accent);
+}
+.chip.drop-after {
+  box-shadow: 5px 0 0 -1px var(--accent);
+}
